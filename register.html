@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký — IOC TDTU</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #060a10; --surface: #0d1520; --surface2: #111d2e;
+            --border: rgba(56,189,248,0.15); --accent: #38bdf8; --accent2: #0ea5e9;
+            --success: #10b981; --danger: #f43f5e;
+            --text: #e2e8f0; --muted: #64748b;
+            --font-head: 'Syne', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+        }
+        body {
+            background: var(--bg); color: var(--text); font-family: var(--font-mono);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 20px; overflow: hidden; position: relative;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+            background-size: 40px 40px; animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove { to { background-position: 40px 40px; } }
+        .blob { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; opacity: 0.12; }
+        .blob-1 { width: 400px; height: 400px; background: #38bdf8; top: -100px; right: -100px; }
+        .blob-2 { width: 300px; height: 300px; background: #6366f1; bottom: -80px; left: -80px; }
+
+        .card {
+            position: relative; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 44px 44px; width: 100%; max-width: 440px; z-index: 1;
+        }
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .logo-area { text-align: center; margin-bottom: 32px; }
+        .logo-icon { width: 52px; height: 52px; background: linear-gradient(135deg, #10b981, #0ea5e9); border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 14px; }
+        .logo-title { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: white; }
+        .logo-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+        /* Step progress */
+        .steps { display: flex; align-items: center; gap: 0; margin-bottom: 32px; }
+        .step-item { display: flex; align-items: center; flex: 1; }
+        .step-dot {
+            width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--muted);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; color: var(--muted); font-weight: 700; flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .step-dot.active { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,0.1); }
+        .step-dot.done { border-color: var(--success); background: var(--success); color: white; }
+        .step-line { flex: 1; height: 1px; background: var(--muted); margin: 0 8px; transition: background 0.3s; }
+        .step-line.done { background: var(--success); }
+        .step-label { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; letter-spacing: 0.5px; }
+
+        .field { margin-bottom: 18px; }
+        .field-label { display: block; font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+        .input-wrap { position: relative; }
+        .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%; background: var(--surface2); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; padding: 13px 14px 13px 42px; color: var(--text);
+            font-family: var(--font-mono); font-size: 14px; outline: none; transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--accent); }
+        input::placeholder { color: var(--muted); }
+
+        .otp-input {
+            text-align: center !important;
+            font-size: 28px !important;
+            font-weight: 700 !important;
+            letter-spacing: 16px !important;
+            padding: 16px 14px !important;
+            color: var(--accent) !important;
+        }
+
+        .strength-bar { height: 3px; border-radius: 2px; background: var(--surface2); margin-top: 6px; overflow: hidden; }
+        .strength-fill { height: 100%; width: 0; border-radius: 2px; transition: all 0.3s; }
+
+        .btn {
+            width: 100%; padding: 14px; background: var(--accent2); border: none; border-radius: 10px;
+            color: #060a10; font-family: var(--font-head); font-size: 14px; font-weight: 700;
+            letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-top: 8px;
+        }
+        .btn:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-ghost { background: transparent !important; border: 1px solid var(--border); color: var(--muted) !important; margin-top: 10px; font-size: 13px; }
+        .btn-ghost:hover:not(:disabled) { background: var(--surface2) !important; transform: none !important; }
+
+        .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: #060a10; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .alert { border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .alert-error { background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3); color: #fda4af; }
+        .alert-info { background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); color: #7dd3fc; }
+
+        .otp-hint { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 20px; }
+        .otp-hint strong { color: var(--accent); }
+
+        .footer-link { text-align: center; margin-top: 28px; font-size: 13px; color: var(--muted); }
+        .footer-link a { color: var(--accent); text-decoration: none; font-weight: 500; }
+
+        #step2panel { display: none; }
+    </style>
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="card">
+        <div class="logo-area">
+            <div class="logo-icon">🛡️</div>
+            <div class="logo-title">TẠO TÀI KHOẢN</div>
+            <div class="logo-sub">IOC Flood Monitoring · TDTU</div>
+        </div>
+
+        <!-- Step indicator -->
+        <div style="margin-bottom: 32px;">
+            <div class="steps">
+                <div class="step-item">
+                    <div class="step-dot active" id="dot1">1</div>
+                </div>
+                <div class="step-line" id="line1"></div>
+                <div class="step-item" style="justify-content:center;">
+                    <div class="step-dot" id="dot2">2</div>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:6px;">
+                <div class="step-label">THÔNG TIN</div>
+                <div class="step-label">XÁC THỰC OTP</div>
+            </div>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <!-- STEP 1 -->
+        <div id="step1panel">
+            <div class="field">
+                <label class="field-label">Họ tên</label>
+                <div class="input-wrap">
+                    <span class="input-icon">👤</span>
+                    <input type="text" id="reg_user" placeholder="Nguyễn Văn A">
+                </div>
+            </div>
+            <div class="field">
+                <label class="field-label">Email</label>
+                <div class="input-wrap">
+                    <span class="input-icon">@</span>
+                    <input type="email" id="reg_email" placeholder="you@student.tdtu.edu.vn">
+                </div>
+            </div>
+            <div class="field">
+                <label class="field-label">Mật khẩu</label>
+                <div class="input-wrap">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="reg_pass" placeholder="Tối thiểu 6 ký tự" oninput="checkStrength(this.value)">
+                </div>
+                <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            </div>
+            <button onclick="sendOTP()" id="btnSend" class="btn">
+                <div class="spinner" id="spin1"></div>
+                <span id="btnSendText">GỬI MÃ XÁC THỰC</span>
+            </button>
+        </div>
+
+        <!-- STEP 2 -->
+        <div id="step2panel">
+            <div class="otp-hint">
+                Mã OTP 6 số đã được gửi đến<br>
+                <strong id="emailDisplay"></strong>
+            </div>
+            <div class="field">
+                <label class="field-label" style="text-align:center;display:block;">Nhập mã OTP</label>
+                <input type="text" id="otp_code" class="otp-input" maxlength="6" placeholder="000000"
+                    inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+            </div>
+            <button onclick="verifyAndRegister()" id="btnVerify" class="btn">
+                <div class="spinner" id="spin2"></div>
+                <span id="btnVerifyText">HOÀN TẤT ĐĂNG KÝ</span>
+            </button>
+            <button onclick="backToStep1()" class="btn btn-ghost">← Quay lại</button>
+        </div>
+
+        <div class="footer-link">
+            Đã có tài khoản? <a href="/login.html">Đăng nhập</a>
+        </div>
+    </div>
+
+    <script>
+        let currentEmail = '';
+
+        function checkStrength(val) {
+            const fill = document.getElementById('strengthFill');
+            let score = 0;
+            if (val.length >= 6) score++;
+            if (val.length >= 10) score++;
+            if (/[A-Z]/.test(val)) score++;
+            if (/[0-9]/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+            const pct = (score / 5) * 100;
+            fill.style.width = pct + '%';
+            fill.style.background = score <= 2 ? '#f43f5e' : score <= 3 ? '#f59e0b' : '#10b981';
+        }
+
+        function showAlert(msg, type = 'error') {
+            const box = document.getElementById('alertBox');
+            box.className = 'alert alert-' + type;
+            box.textContent = (type === 'error' ? '⚠ ' : 'ℹ ') + msg;
+            box.style.display = 'block';
+        }
+        function hideAlert() { document.getElementById('alertBox').style.display = 'none'; }
+
+        async function sendOTP() {
+            hideAlert();
+            const username = document.getElementById('reg_user').value.trim();
+            const email = document.getElementById('reg_email').value.trim();
+            const password = document.getElementById('reg_pass').value;
+
+            if (!username || !email || !password) { showAlert('Vui lòng nhập đầy đủ thông tin!'); return; }
+            if (password.length < 6) { showAlert('Mật khẩu ít nhất 6 ký tự!'); return; }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAlert('Email không hợp lệ!'); return; }
+
+            const btn = document.getElementById('btnSend');
+            const spin = document.getElementById('spin1');
+            const text = document.getElementById('btnSendText');
+            btn.disabled = true; spin.style.display = 'block'; text.textContent = 'ĐANG GỬI...';
+
+            try {
+                const res = await fetch('/api/register-step-1', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    currentEmail = email;
+                    document.getElementById('emailDisplay').textContent = email;
+                    goToStep2();
+                } else {
+                    showAlert(data.message || 'Lỗi gửi OTP!');
+                }
+            } catch (e) {
+                showAlert('Lỗi kết nối server!');
+            } finally {
+                btn.disabled = false; spin.style.display = 'none'; text.textContent = 'GỬI MÃ XÁC THỰC';
+            }
+        }
+
+        async function verifyAndRegister() {
+            hideAlert();
+            const otp = document.getElementById('otp_code').value;
+            if (otp.length !== 6) { showAlert('Vui lòng nhập đủ 6 số OTP!'); return; }
+
+            const btn = document.getElementById('btnVerify');
+            const spin = document.getElementById('spin2');
+            const text = document.getElementById('btnVerifyText');
+            btn.disabled = true; spin.style.display = 'block'; text.textContent = 'ĐANG XÁC THỰC...';
+
+            try {
+                const res = await fetch('/api/register-verify', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentEmail, otp })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    text.textContent = '✓ THÀNH CÔNG!';
+                    showAlert('Tài khoản đã được tạo! Đang chuyển trang...', 'info');
+                    setTimeout(() => { window.location.href = '/login.html'; }, 1200);
+                } else {
+                    showAlert(data.message || 'OTP không hợp lệ!');
+                }
+            } catch (e) {
+                showAlert('Lỗi xác thực!');
+            } finally {
+                btn.disabled = false; spin.style.display = 'none';
+                if (text.textContent === 'ĐANG XÁC THỰC...') text.textContent = 'HOÀN TẤT ĐĂNG KÝ';
+            }
+        }
+
+        function goToStep2() {
+            document.getElementById('step1panel').style.display = 'none';
+            document.getElementById('step2panel').style.display = 'block';
+            document.getElementById('dot1').className = 'step-dot done';
+            document.getElementById('dot1').textContent = '✓';
+            document.getElementById('dot2').className = 'step-dot active';
+            document.getElementById('line1').className = 'step-line done';
+            hideAlert();
+            setTimeout(() => document.getElementById('otp_code').focus(), 100);
+        }
+
+        function backToStep1() {
+            document.getElementById('step1panel').style.display = 'block';
+            document.getElementById('step2panel').style.display = 'none';
+            document.getElementById('dot1').className = 'step-dot active';
+            document.getElementById('dot1').textContent = '1';
+            document.getElementById('dot2').className = 'step-dot';
+            document.getElementById('line1').className = 'step-line';
+            hideAlert();
+        }
+    </script>
+</body>
+</html>

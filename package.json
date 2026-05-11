@@ -1,0 +1,24 @@
+{
+  "name": "iot-flood-monitor-tdtu",
+  "version": "2.0.0",
+  "description": "IOC Flood Monitoring System - District 7 TDTU",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "express-rate-limit": "^7.2.0",
+    "express-session": "^1.18.0",
+    "mongoose": "^8.3.1",
+    "mqtt": "^5.5.0",
+    "nodemailer": "^6.9.13",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Nhập — IOC TDTU</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #060a10;
+            --surface: #0d1520;
+            --surface2: #111d2e;
+            --border: rgba(56,189,248,0.15);
+            --accent: #38bdf8;
+            --accent2: #0ea5e9;
+            --danger: #f43f5e;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --font-head: 'Syne', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-mono);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: 
+                linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove { to { background-position: 40px 40px; } }
+
+        /* Glow blobs */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            opacity: 0.12;
+        }
+        .blob-1 { width: 400px; height: 400px; background: #38bdf8; top: -100px; right: -100px; }
+        .blob-2 { width: 300px; height: 300px; background: #6366f1; bottom: -80px; left: -80px; }
+
+        .card {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px 44px;
+            width: 100%;
+            max-width: 420px;
+            z-index: 1;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .logo-icon {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, var(--accent2), #6366f1);
+            border-radius: 14px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+        .logo-title {
+            font-family: var(--font-head);
+            font-size: 22px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -0.5px;
+        }
+        .logo-sub {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .field { margin-bottom: 20px; }
+        .field-label {
+            display: block;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .input-wrap { position: relative; }
+        .input-icon {
+            position: absolute;
+            left: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 15px;
+            pointer-events: none;
+        }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 13px 14px 13px 42px;
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--accent); }
+        input::placeholder { color: var(--muted); }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent2);
+            border: none; border-radius: 10px;
+            color: #060a10;
+            font-family: var(--font-head);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            position: relative; overflow: hidden;
+            margin-top: 8px;
+        }
+        .btn:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(rgba(255,255,255,0.1), transparent);
+        }
+
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid transparent;
+            border-top-color: #060a10;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-box {
+            display: none;
+            background: rgba(244,63,94,0.1);
+            border: 1px solid rgba(244,63,94,0.3);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #fda4af;
+            margin-bottom: 16px;
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .footer-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .footer-link a:hover { text-decoration: underline; }
+
+        /* Scan line animation */
+        .card::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0;
+            height: 1px;
+            background: rgba(56,189,248,0.3);
+            animation: scan 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="card">
+        <div class="logo-area">
+            <div class="logo-icon">🏙️</div>
+            <div class="logo-title">IOC DISTRICT 7</div>
+            <div class="logo-sub">Flood Monitoring System · TDTU</div>
+        </div>
+
+        <div id="errorBox" class="error-box"></div>
+
+        <div class="field">
+            <label class="field-label">Email</label>
+            <div class="input-wrap">
+                <span class="input-icon">@</span>
+                <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="field-label">Mật khẩu</label>
+            <div class="input-wrap">
+                <span class="input-icon">🔒</span>
+                <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password"
+                    onkeypress="if(event.key==='Enter') handleLogin()">
+            </div>
+        </div>
+
+        <button onclick="handleLogin()" id="loginBtn" class="btn">
+            <div class="spinner" id="spinner"></div>
+            <span id="btnText">VÀO HỆ THỐNG</span>
+        </button>
+
+        <div class="footer-link">
+            Chưa có tài khoản? <a href="/register.html">Đăng ký ngay</a>
+        </div>
+    </div>
+
+    <script>
+        async function handleLogin() {
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('pass').value;
+            const errorBox = document.getElementById('errorBox');
+            const btn = document.getElementById('loginBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.getElementById('btnText');
+
+            errorBox.style.display = 'none';
+
+            if (!email || !pass) {
+                showError('Vui lòng nhập đầy đủ email và mật khẩu!');
+                return;
+            }
+
+            btn.disabled = true;
+            spinner.style.display = 'block';
+            btnText.textContent = 'ĐANG XÁC THỰC...';
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: pass })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('userRole', data.role);
+                    localStorage.setItem('username', data.username);
+                    btnText.textContent = '✓ THÀNH CÔNG';
+                    setTimeout(() => { window.location.href = '/'; }, 300);
+                } else {
+                    showError(data.message || 'Sai thông tin đăng nhập!');
+                }
+            } catch (e) {
+                showError('Lỗi kết nối! Kiểm tra server.js đã chạy chưa.');
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                if (btnText.textContent === 'ĐANG XÁC THỰC...') btnText.textContent = 'VÀO HỆ THỐNG';
+            }
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('errorBox');
+            box.textContent = '⚠ ' + msg;
+            box.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

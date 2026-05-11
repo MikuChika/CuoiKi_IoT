@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — IOC TDTU</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #060a10; --surface: #0d1520; --surface2: #111d2e; --surface3: #0a1220;
+            --border: rgba(56,189,248,0.12); --border2: rgba(56,189,248,0.25);
+            --accent: #38bdf8; --accent2: #0ea5e9; --danger: #f43f5e;
+            --warning: #f59e0b; --success: #10b981; --admin: #a78bfa;
+            --text: #e2e8f0; --muted: #64748b;
+            --font-head: 'Syne', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+        }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-mono); min-height: 100vh; }
+
+        .header {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+            height: 60px; position: sticky; top: 0; z-index: 100;
+        }
+        .header-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--admin), #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .brand-text { font-family: var(--font-head); font-size: 16px; font-weight: 800; color: white; }
+        .admin-badge { font-size: 10px; letter-spacing: 2px; background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3); color: var(--admin); padding: 2px 10px; border-radius: 20px; }
+        .btn-back { padding: 7px 14px; border-radius: 8px; font-family: var(--font-head); font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); text-decoration: none; }
+        .btn-back:hover { color: var(--accent); border-color: var(--accent); }
+
+        .main { padding: 24px 28px; display: grid; gap: 24px; }
+
+        /* SECTION */
+        .section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .section-header {
+            padding: 16px 22px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .section-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--admin); letter-spacing: 0.5px; }
+        .section-body { padding: 20px 22px; }
+
+        /* FORM GRID */
+        .form-grid { display: grid; gap: 14px; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; align-items: end; }
+        .form-field label { display: block; font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+        input[type="text"], input[type="number"] {
+            width: 100%; background: var(--surface2); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px; padding: 10px 12px; color: var(--text);
+            font-family: var(--font-mono); font-size: 13px; outline: none; transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--accent); }
+        input::placeholder { color: var(--muted); }
+        select.form-select {
+            width: 100%; background: var(--surface2); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px; padding: 10px 12px; color: var(--text);
+            font-family: var(--font-mono); font-size: 13px; outline: none;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer;
+            font-family: var(--font-head); font-size: 12px; font-weight: 700;
+            letter-spacing: 0.5px; transition: all 0.2s; display: inline-flex;
+            align-items: center; gap: 6px;
+        }
+        .btn-primary { background: var(--accent2); color: #060a10; }
+        .btn-primary:hover { background: var(--accent); transform: translateY(-1px); }
+        .btn-danger { background: rgba(244,63,94,0.15); color: var(--danger); border: 1px solid rgba(244,63,94,0.3); }
+        .btn-danger:hover { background: rgba(244,63,94,0.25); }
+        .btn-success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+        .btn-success:hover { background: rgba(16,185,129,0.25); }
+        .btn-warn { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+        .btn-warn:hover { background: rgba(245,158,11,0.25); }
+        .btn-sm { padding: 6px 12px; font-size: 11px; }
+
+        /* TABLE */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { padding: 10px 12px; text-align: left; color: var(--muted); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 1px solid var(--border); font-weight: 500; }
+        td { padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        code { background: var(--surface3); padding: 2px 8px; border-radius: 4px; font-size: 12px; color: var(--accent); }
+
+        /* STATUS BADGES */
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+        .badge-admin { background: rgba(167,139,250,0.15); color: var(--admin); border: 1px solid rgba(167,139,250,0.3); }
+        .badge-user { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.3); }
+        .badge-active { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+
+        /* CONTROL GRID */
+        .ctrl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .ctrl-card {
+            background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+        }
+        .ctrl-card-title { font-size: 13px; font-family: var(--font-head); font-weight: 700; color: white; margin-bottom: 4px; }
+        .ctrl-card-id { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+        .ctrl-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        /* ALERT */
+        .alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .alert-success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+        .alert-error { background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3); color: #fda4af; }
+
+        /* Toast */
+        #toast { position: fixed; top: 70px; right: 20px; z-index: 200; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 12px 16px; font-size: 13px; max-width: 300px; opacity: 0; transition: opacity 0.3s; }
+        #toast.show { opacity: 1; }
+
+        .loading { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-brand">
+        <div class="brand-icon">⚙️</div>
+        <div>
+            <div class="brand-text">ADMIN CONTROL</div>
+        </div>
+        <span class="admin-badge">ADMIN</span>
+    </div>
+    <a href="/" class="btn-back">← Quay lại Dashboard</a>
+</div>
+
+<div class="main">
+
+    <!-- ADD STATION -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-title">➕ THÊM TRẠM QUAN TRẮC</span>
+        </div>
+        <div class="section-body">
+            <div id="addAlert" class="alert"></div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Node ID</label>
+                    <input type="text" id="nid" placeholder="node_q7_01">
+                </div>
+                <div class="form-field">
+                    <label>Tên trạm</label>
+                    <input type="text" id="nname" placeholder="Trạm Phú Mỹ Hưng">
+                </div>
+                <div class="form-field">
+                    <label>Vĩ độ (Lat)</label>
+                    <input type="number" id="nlat" placeholder="10.7327" step="0.0001">
+                </div>
+                <div class="form-field">
+                    <label>Kinh độ (Lng)</label>
+                    <input type="number" id="nlng" placeholder="106.6992" step="0.0001">
+                </div>
+                <div class="form-field">
+                    <label>Ngưỡng ngập (cm)</label>
+                    <input type="number" id="nthreshold" placeholder="30" min="5" max="200">
+                </div>
+                <div class="form-field" style="align-self:end;">
+                    <button onclick="addStation()" class="btn btn-primary" style="width:100%;">THÊM TRẠM</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATION LIST & CONTROL -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-title">📡 DANH SÁCH TRẠM & ĐIỀU KHIỂN</span>
+            <button onclick="loadStations()" class="btn btn-sm" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);">🔄 Làm mới</button>
+        </div>
+        <div class="section-body">
+            <div class="ctrl-grid" id="stationCtrl">
+                <div class="loading">Đang tải danh sách trạm...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER MANAGEMENT -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-title">👥 QUẢN LÝ NGƯỜI DÙNG</span>
+            <button onclick="loadUsers()" class="btn btn-sm" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);">🔄 Làm mới</button>
+        </div>
+        <div class="section-body">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tên</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Ngày tạo</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTable">
+                        <tr><td colspan="5" class="loading">Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    // Listen for device control acks
+    socket.on('device_control_ack', d => {
+        showToast(`✓ Lệnh gửi thành công: ${d.device} → ${d.state ? 'BẬT' : 'TẮT'}`);
+    });
+
+    // ── STATIONS ──────────────────────
+    async function loadStations() {
+        const res = await fetch('/api/stations');
+        const stations = await res.json();
+        const div = document.getElementById('stationCtrl');
+
+        if (!stations.length) {
+            div.innerHTML = '<div class="loading">Chưa có trạm nào. Thêm trạm mới ở trên.</div>';
+            return;
+        }
+
+        div.innerHTML = stations.map(s => `
+            <div class="ctrl-card">
+                <div class="ctrl-card-title">📍 ${s.name}</div>
+                <div class="ctrl-card-id"><code>${s.node_id}</code> &nbsp;·&nbsp; Ngưỡng: ${s.threshold_cm}cm</div>
+                <div class="ctrl-btns">
+                    <button onclick="ctrl('${s.node_id}','siren',1)" class="btn btn-danger btn-sm">🔔 BẬT Còi</button>
+                    <button onclick="ctrl('${s.node_id}','siren',0)" class="btn btn-sm" style="background:var(--surface3);color:var(--muted);border:1px solid var(--border);">TẮT Còi</button>
+                    <button onclick="ctrl('${s.node_id}','pump',1)" class="btn btn-success btn-sm">💧 MỞ Bơm</button>
+                    <button onclick="ctrl('${s.node_id}','pump',0)" class="btn btn-sm" style="background:var(--surface3);color:var(--muted);border:1px solid var(--border);">ĐÓNG Bơm</button>
+                    <button onclick="deleteStation('${s.node_id}')" class="btn btn-warn btn-sm" style="margin-top:6px;">🗑 Xóa trạm</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function addStation() {
+        const nid = document.getElementById('nid').value.trim();
+        const nname = document.getElementById('nname').value.trim();
+        const nlat = document.getElementById('nlat').value;
+        const nlng = document.getElementById('nlng').value;
+        const nth = document.getElementById('nthreshold').value || 30;
+
+        if (!nid || !nname || !nlat || !nlng) {
+            showAddAlert('Vui lòng nhập đầy đủ thông tin trạm!', 'error'); return;
+        }
+
+        const res = await fetch('/api/admin/add-station', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ node_id: nid, name: nname, lat: nlat, lng: nlng, threshold_cm: nth })
+        });
+        const d = await res.json();
+        if (d.success) {
+            showAddAlert('✓ Thêm trạm thành công!', 'success');
+            ['nid','nname','nlat','nlng','nthreshold'].forEach(id => document.getElementById(id).value = '');
+            loadStations();
+        } else {
+            showAddAlert(d.message || 'Lỗi thêm trạm!', 'error');
+        }
+    }
+
+    async function ctrl(nodeId, device, state) {
+        const res = await fetch('/api/admin/control', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ node_id: nodeId, device, state })
+        });
+        const d = await res.json();
+        if (!d.success) showToast('❌ Gửi lệnh thất bại: ' + (d.message || ''));
+    }
+
+    async function deleteStation(nodeId) {
+        if (!confirm(`Xác nhận xóa trạm "${nodeId}"?`)) return;
+        const res = await fetch(`/api/admin/station/${nodeId}`, { method: 'DELETE' });
+        const d = await res.json();
+        if (d.success) { showToast('✓ Đã xóa trạm!'); loadStations(); }
+        else showToast('❌ Xóa thất bại!');
+    }
+
+    // ── USERS ──────────────────────────
+    async function loadUsers() {
+        const res = await fetch('/api/admin/users');
+        const users = await res.json();
+        const tbody = document.getElementById('userTable');
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td><strong>${u.username}</strong></td>
+                <td style="color:var(--muted);">${u.email}</td>
+                <td><span class="badge badge-${u.role.toLowerCase()}">${u.role}</span></td>
+                <td style="color:var(--muted);font-size:11px;">${new Date(u.createdAt).toLocaleDateString('vi-VN')}</td>
+                <td>
+                    ${u.role === 'USER'
+                        ? `<button onclick="setRole('${u.email}','ADMIN')" class="btn btn-warn btn-sm">↑ Lên Admin</button>`
+                        : `<button onclick="setRole('${u.email}','USER')" class="btn btn-sm" style="background:var(--surface3);color:var(--muted);border:1px solid var(--border);">↓ Hạ xuống User</button>`
+                    }
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function setRole(email, role) {
+        const res = await fetch('/api/admin/set-role', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, role })
+        });
+        const d = await res.json();
+        if (d.success) { showToast(`✓ Đã đổi role của ${email} → ${role}`); loadUsers(); }
+        else showToast('❌ Đổi role thất bại!');
+    }
+
+    // ── HELPERS ────────────────────────
+    function showAddAlert(msg, type) {
+        const el = document.getElementById('addAlert');
+        el.className = 'alert alert-' + type;
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // Init
+    loadStations();
+    loadUsers();
+</script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IOC Dashboard — Quận 7</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #060a10; --surface: #0d1520; --surface2: #111d2e; --surface3: #0a1220;
+            --border: rgba(56,189,248,0.12); --border2: rgba(56,189,248,0.25);
+            --accent: #38bdf8; --accent2: #0ea5e9; --danger: #f43f5e;
+            --warning: #f59e0b; --success: #10b981;
+            --text: #e2e8f0; --muted: #64748b; --muted2: #475569;
+            --font-head: 'Syne', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+        }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-mono); min-height: 100vh; overflow-x: hidden; }
+
+        /* HEADER */
+        .header {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 0 24px; display: flex; align-items: center; justify-content: space-between;
+            height: 60px; position: sticky; top: 0; z-index: 100;
+        }
+        .header-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent2), #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .brand-text { font-family: var(--font-head); font-size: 16px; font-weight: 800; color: white; }
+        .brand-sub { font-size: 10px; color: var(--muted); display: block; font-weight: 400; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .node-select {
+            background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+            padding: 7px 12px; color: var(--text); font-family: var(--font-mono); font-size: 12px;
+            outline: none; cursor: pointer; min-width: 180px;
+        }
+        .user-badge { font-size: 11px; color: var(--muted); padding: 6px 12px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); }
+        .btn-header {
+            padding: 7px 14px; border-radius: 8px; font-family: var(--font-head);
+            font-size: 11px; font-weight: 700; cursor: pointer; border: none; letter-spacing: 0.5px;
+            text-decoration: none; display: inline-flex; align-items: center;
+        }
+        .btn-admin { background: #f59e0b; color: #1c1917; }
+        .btn-logout { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+        .btn-logout:hover { color: var(--danger); border-color: var(--danger); }
+
+        /* ALERT BANNER */
+        #alertBanner {
+            display: none; padding: 12px 24px; background: rgba(244,63,94,0.12);
+            border-bottom: 1px solid rgba(244,63,94,0.3); font-size: 13px; color: #fda4af;
+            animation: alertPulse 1s ease-in-out infinite;
+        }
+        @keyframes alertPulse { 0%,100% { background: rgba(244,63,94,0.12); } 50% { background: rgba(244,63,94,0.2); } }
+
+        /* MAIN LAYOUT */
+        .main { padding: 20px 24px; display: grid; gap: 20px; }
+
+        /* STAT CARDS */
+        .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 18px 20px; position: relative; overflow: hidden;
+        }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+        .stat-card.water::before { background: linear-gradient(90deg, var(--danger), transparent); }
+        .stat-card.temp::before { background: linear-gradient(90deg, #f59e0b, transparent); }
+        .stat-card.humi::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+        .stat-card.light::before { background: linear-gradient(90deg, #a78bfa, transparent); }
+        .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+        .stat-val { font-size: 32px; font-weight: 700; font-family: var(--font-head); line-height: 1; }
+        .stat-unit { font-size: 13px; font-weight: 400; color: var(--muted); }
+        .stat-status { font-size: 11px; margin-top: 6px; }
+        .stat-status.ok { color: var(--success); }
+        .stat-status.warn { color: var(--warning); }
+        .stat-status.danger { color: var(--danger); }
+
+        /* BOTTOM GRID */
+        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; }
+
+        /* PANEL */
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .panel-header {
+            padding: 14px 18px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .panel-title { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; }
+        .panel-body { padding: 16px 18px; }
+
+        /* MAP — panel chứa map không được overflow:hidden vì Leaflet cần render đầy đủ */
+        .panel-map { overflow: visible; }
+        #map {
+            height: 340px;
+            width: 100%;
+            border-radius: 0 0 14px 14px;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+        .leaflet-container { background: #0d1520 !important; }
+        .leaflet-control-zoom { border: 1px solid var(--border) !important; }
+        .leaflet-control-zoom a { background: var(--surface2) !important; color: var(--text) !important; border-color: var(--border) !important; }
+
+        /* CHART */
+        #chartWrap { height: 260px; padding: 16px 18px; }
+
+        /* IP CAMERA */
+        .cam-url-bar {
+            display: flex; gap: 8px; padding: 10px 14px;
+            border-bottom: 1px solid var(--border); background: var(--surface2);
+        }
+        .cam-url-input {
+            flex: 1; background: var(--surface3); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 7px; padding: 7px 11px; color: var(--text);
+            font-family: var(--font-mono); font-size: 11px; outline: none;
+        }
+        .cam-url-input:focus { border-color: var(--accent); }
+        .cam-url-input::placeholder { color: var(--muted); }
+        .cam-btn {
+            padding: 7px 12px; border-radius: 7px; border: none; cursor: pointer;
+            font-family: var(--font-head); font-size: 11px; font-weight: 700; white-space: nowrap;
+        }
+        .cam-btn-connect { background: var(--accent2); color: #060a10; }
+        .cam-btn-connect:hover { background: var(--accent); }
+        .cam-btn-stop { background: rgba(244,63,94,0.15); color: var(--danger); border: 1px solid rgba(244,63,94,0.3); }
+        .cam-btn-stop:hover { background: rgba(244,63,94,0.25); }
+
+        #camView { width: 100%; display: block; border-radius: 0 0 14px 14px; background: #000; }
+        .cam-placeholder {
+            height: 200px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: var(--muted); gap: 10px; font-size: 13px;
+        }
+        .cam-error {
+            padding: 12px 14px; background: rgba(244,63,94,0.08);
+            border-top: 1px solid rgba(244,63,94,0.2);
+            font-size: 12px; color: #fda4af; display: none;
+        }
+        .cam-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+        .cam-status-dot.live { background: var(--danger); animation: blink 1s step-end infinite; }
+        .cam-status-dot.ok { background: var(--success); animation: none; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        .camView { width: 100%; display: block; border-radius: 0 0 14px 14px; background: #000; max-height: 280px; object-fit: contain; }
+
+        /* ROUTE INFO */
+        .route-info { height: 240px; overflow-y: auto; font-size: 12px; color: var(--muted); }
+        .route-info::-webkit-scrollbar { width: 4px; }
+        .route-info::-webkit-scrollbar-track { background: transparent; }
+        .route-info::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+        .route-hint { font-size: 12px; color: var(--muted); padding: 20px; text-align: center; line-height: 1.8; }
+
+        /* CONNECTION STATUS */
+        .conn-status {
+            position: fixed; bottom: 20px; right: 20px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+            padding: 6px 14px 6px 10px; font-size: 12px; display: flex; align-items: center; gap: 6px;
+            z-index: 99;
+        }
+        .conn-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .conn-dot.on { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .conn-dot.off { background: var(--danger); }
+
+        /* Toast */
+        #toast {
+            position: fixed; top: 70px; right: 20px; z-index: 200;
+            background: var(--surface); border: 1px solid var(--border2);
+            border-radius: 10px; padding: 12px 16px; font-size: 13px;
+            max-width: 300px; opacity: 0; transition: opacity 0.3s;
+        }
+        #toast.show { opacity: 1; }
+
+        @media (max-width: 1100px) { .stat-row { grid-template-columns: repeat(2, 1fr); } .bottom-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-brand">
+        <div class="brand-icon">🏙️</div>
+        <div>
+            <div class="brand-text">IOC DISTRICT 7</div>
+            <span class="brand-sub">Flood Monitoring System</span>
+        </div>
+    </div>
+    <div class="header-right">
+        <select id="nodeSelect" class="node-select" onchange="onNodeChange(this.value)">
+            <option disabled>Chọn trạm...</option>
+        </select>
+        <span class="user-badge" id="userBadge">—</span>
+        <a href="/admin" id="adminBtn" class="btn-header btn-admin" style="display:none">⚙ ADMIN</a>
+        <a href="/logout" class="btn-header btn-logout">Thoát</a>
+    </div>
+</div>
+
+<div id="alertBanner">
+    ⚠ <strong id="alertText">CẢNH BÁO NGẬP!</strong>
+</div>
+
+<div class="main">
+    <!-- STAT CARDS -->
+    <div class="stat-row">
+        <div class="stat-card water">
+            <div class="stat-label">Mực nước</div>
+            <div class="stat-val" id="statWater">—<span class="stat-unit"> cm</span></div>
+            <div class="stat-status" id="waterStatus">—</div>
+        </div>
+        <div class="stat-card temp">
+            <div class="stat-label">Nhiệt độ</div>
+            <div class="stat-val" id="statTemp">—<span class="stat-unit"> °C</span></div>
+            <div class="stat-status ok">Bình thường</div>
+        </div>
+        <div class="stat-card humi">
+            <div class="stat-label">Độ ẩm</div>
+            <div class="stat-val" id="statHumi">—<span class="stat-unit"> %</span></div>
+            <div class="stat-status ok">Bình thường</div>
+        </div>
+        <div class="stat-card light">
+            <div class="stat-label">Ánh sáng</div>
+            <div class="stat-val" id="statLight">—<span class="stat-unit"> lx</span></div>
+            <div class="stat-status ok">Bình thường</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM GRID -->
+    <div class="bottom-grid">
+        <!-- MAP -->
+        <div class="panel panel-map">
+            <div class="panel-header">
+                <span class="panel-title">🗺 BẢN ĐỒ TRẠM</span>
+                <span style="font-size:11px;color:var(--muted)">Chuột phải → dẫn đường</span>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- CHART -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">📈 BIỂU ĐỒ MỰC NƯỚC</span>
+                <span style="font-size:11px;color:var(--muted)" id="chartNodeLabel">—</span>
+            </div>
+            <div id="chartWrap">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+            <!-- IP CAMERA -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">🎥 IP CAMERA</span>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
+                        <div class="cam-status-dot" id="camDot"></div>
+                        <span id="camStatusText">Chưa kết nối</span>
+                    </div>
+                </div>
+
+                <!-- URL input bar -->
+                <div class="cam-url-bar">
+                    <input class="cam-url-input" id="camUrlInput"
+                        placeholder="http://192.168.x.x:8080/video  hoặc  /stream.m3u8"
+                        value="">
+                    <button class="cam-btn cam-btn-connect" onclick="connectCam()">▶ Kết nối</button>
+                    <button class="cam-btn cam-btn-stop" onclick="stopCam()" id="camStopBtn" style="display:none;">■ Dừng</button>
+                </div>
+
+                <!-- Placeholder khi chưa kết nối -->
+                <div class="cam-placeholder" id="camPlaceholder">
+                    <div style="font-size:40px;">📷</div>
+                    <div>Nhập URL stream từ app IP Cam</div>
+                    <div style="font-size:11px;color:var(--muted);text-align:center;line-height:1.8;">
+                        App phổ biến: <strong style="color:var(--accent)">IP Webcam</strong> · <strong style="color:var(--accent)">DroidCam</strong><br>
+                        Vào app → Start server → Copy URL
+                    </div>
+                </div>
+
+                <!-- MJPEG stream — dùng thẻ img, browser tự xử lý -->
+                <img id="camMjpeg" style="display:none;" class="camView" alt="MJPEG stream"
+                    onload="onCamLoad()" onerror="onCamError('Không tải được ảnh. Kiểm tra URL hoặc cùng WiFi.')">
+
+                <!-- HLS stream — dùng thẻ video -->
+                <video id="camHls" style="display:none;" class="camView"
+                    autoplay muted playsinline controls></video>
+
+                <div class="cam-error" id="camError"></div>
+            </div>
+
+            <!-- ROUTING INFO -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">🧭 DẪN ĐƯỜNG TRÁNH NGẬP</span>
+                    <button onclick="clearRoute()" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;">Xóa</button>
+                </div>
+                <div class="panel-body">
+                    <div class="route-info" id="routeInfo">
+                        <div class="route-hint">Chuột phải lần 1 → điểm xuất phát<br>Chuột phải lần 2 → điểm đến<br>Hệ thống tự tính đường tránh ngập</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Status -->
+<div class="conn-status">
+    <div class="conn-dot" id="connDot"></div>
+    <span id="connText" style="color:var(--muted)">Đang kết nối...</span>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
+
+<script>
+// ── USER INFO ──────────────────────────────
+fetch('/api/me').then(r => r.json()).then(u => {
+    document.getElementById('userBadge').textContent = `${u.username} · ${u.role}`;
+    if (u.role === 'ADMIN') document.getElementById('adminBtn').style.display = 'inline-flex';
+}).catch(() => {});
+
+// ── SOCKET.IO ──────────────────────────────
+const socket = io();
+const connDot = document.getElementById('connDot');
+const connText = document.getElementById('connText');
+socket.on('connect', () => { connDot.className = 'conn-dot on'; connText.textContent = 'Realtime · Kết nối'; });
+socket.on('disconnect', () => { connDot.className = 'conn-dot off'; connText.textContent = 'Mất kết nối'; });
+
+socket.on('flood_data', d => {
+    if (d.node_id === selectedNode) renderUI(d);
+});
+
+socket.on('flood_alert', d => {
+    showAlert(`⚠ NGẬP! Trạm ${d.station_name}: ${d.water_level_cm}cm (ngưỡng: ${d.threshold_cm}cm)`);
+    showToast(`🚨 CẢNH BÁO: ${d.station_name} — ${d.water_level_cm} cm`, 'danger');
+});
+
+socket.on('stream_display', d => {
+    // Giữ lại để tương thích nếu vẫn dùng ESP32-CAM qua socket
+    // IP Cam trực tiếp không dùng socket này nữa
+});
+
+// ── IP CAMERA ──────────────────────────────
+let hlsInstance = null;
+
+function connectCam() {
+    const url = document.getElementById('camUrlInput').value.trim();
+    if (!url) { onCamError('Vui lòng nhập URL stream!'); return; }
+
+    stopCam(); // dừng stream cũ nếu có
+    document.getElementById('camError').style.display = 'none';
+    setCamStatus('connecting');
+
+    if (url.includes('.m3u8')) {
+        startHls(url);
+    } else {
+        // MJPEG — chỉ cần gán src vào thẻ img, browser tự xử lý
+        startMjpeg(url);
+    }
+
+    // Lưu URL vào localStorage để lần sau tự điền
+    localStorage.setItem('camUrl', url);
+    document.getElementById('camStopBtn').style.display = 'inline-block';
+}
+
+function startMjpeg(url) {
+    const img = document.getElementById('camMjpeg');
+    const video = document.getElementById('camHls');
+    const ph = document.getElementById('camPlaceholder');
+
+    video.style.display = 'none';
+    ph.style.display = 'none';
+    img.style.display = 'block';
+
+    // Thêm timestamp để tránh browser cache
+    img.src = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+}
+
+function startHls(url) {
+    const video = document.getElementById('camHls');
+    const img = document.getElementById('camMjpeg');
+    const ph = document.getElementById('camPlaceholder');
+
+    img.style.display = 'none';
+    ph.style.display = 'none';
+    video.style.display = 'block';
+
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+        // Dùng hls.js (đã load ở dưới)
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(video);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play();
+            onCamLoad();
+        });
+        hlsInstance.on(Hls.Events.ERROR, (e, data) => {
+            if (data.fatal) onCamError('HLS lỗi: ' + data.type);
+        });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari hỗ trợ HLS native
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => { video.play(); onCamLoad(); });
+        video.addEventListener('error', () => onCamError('Không phát được HLS stream!'));
+    } else {
+        onCamError('Trình duyệt không hỗ trợ HLS. Dùng Safari hoặc cài hls.js.');
+    }
+}
+
+function stopCam() {
+    const img = document.getElementById('camMjpeg');
+    const video = document.getElementById('camHls');
+    const ph = document.getElementById('camPlaceholder');
+
+    img.style.display = 'none';
+    img.src = '';
+
+    video.style.display = 'none';
+    video.src = '';
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+
+    ph.style.display = 'flex';
+    document.getElementById('camStopBtn').style.display = 'none';
+    setCamStatus('idle');
+}
+
+function onCamLoad() {
+    setCamStatus('live');
+}
+
+function onCamError(msg) {
+    const errEl = document.getElementById('camError');
+    errEl.textContent = '⚠ ' + msg;
+    errEl.style.display = 'block';
+    setCamStatus('idle');
+    // Ẩn stream, hiện placeholder
+    document.getElementById('camMjpeg').style.display = 'none';
+    document.getElementById('camHls').style.display = 'none';
+    document.getElementById('camPlaceholder').style.display = 'flex';
+    document.getElementById('camStopBtn').style.display = 'none';
+}
+
+function setCamStatus(state) {
+    const dot = document.getElementById('camDot');
+    const text = document.getElementById('camStatusText');
+    if (state === 'live') {
+        dot.className = 'cam-status-dot live';
+        text.textContent = 'LIVE';
+        text.style.color = 'var(--danger)';
+    } else if (state === 'connecting') {
+        dot.className = 'cam-status-dot ok';
+        text.textContent = 'Đang kết nối...';
+        text.style.color = 'var(--warning)';
+    } else {
+        dot.className = 'cam-status-dot';
+        text.textContent = 'Chưa kết nối';
+        text.style.color = 'var(--muted)';
+    }
+}
+
+// Tự điền URL đã lưu từ lần trước
+const savedUrl = localStorage.getItem('camUrl');
+if (savedUrl) {
+    document.getElementById('camUrlInput').value = savedUrl;
+}
+
+// Enter để kết nối nhanh
+document.getElementById('camUrlInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') connectCam();
+});
+
+// ── MAP ────────────────────────────────────
+var map = L.map('map', { zoomControl: true }).setView([10.7327, 106.6992], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19
+}).addTo(map);
+
+// Bắt buộc phải gọi sau khi DOM render xong — không có dòng này bản đồ chỉ hiện 1 nửa
+setTimeout(() => map.invalidateSize(), 100);
+
+var routingControl = null;
+var waypointCount = 0;
+var routeWaypoints = [];
+
+map.on('contextmenu', e => {
+    if (waypointCount === 0) {
+        routeWaypoints = [e.latlng, null];
+        waypointCount = 1;
+        showToast('📍 Điểm xuất phát đã chọn. Chuột phải để chọn điểm đến.', 'info');
+    } else {
+        routeWaypoints[1] = e.latlng;
+        waypointCount = 0;
+        if (routingControl) map.removeControl(routingControl);
+        routingControl = L.Routing.control({
+            waypoints: routeWaypoints,
+            routeWhileDragging: false,
+            show: false,
+            addWaypoints: false
+        }).on('routesfound', e => {
+            const r = e.routes[0];
+            const dist = (r.summary.totalDistance / 1000).toFixed(1);
+            const time = Math.round(r.summary.totalTime / 60);
+            document.getElementById('routeInfo').innerHTML = `
+                <div style="padding:4px 0;">
+                    <div style="color:var(--accent);font-size:13px;margin-bottom:8px;">📍 Lộ trình tìm thấy</div>
+                    <div>Khoảng cách: <strong style="color:white;">${dist} km</strong></div>
+                    <div>Thời gian dự kiến: <strong style="color:white;">${time} phút</strong></div>
+                    <div style="margin-top:10px;color:var(--muted);font-size:11px;">${r.instructions?.map(i=>`→ ${i.text}`).slice(0,8).join('<br>') || ''}</div>
+                </div>`;
+        }).addTo(map);
+    }
+});
+
+function clearRoute() {
+    if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+    waypointCount = 0;
+    routeWaypoints = [];
+    document.getElementById('routeInfo').innerHTML = '<div class="route-hint">Chuột phải lần 1 → điểm xuất phát<br>Chuột phải lần 2 → điểm đến</div>';
+}
+
+// ── MARKERS ────────────────────────────────
+var markers = {};
+var selectedNode = null;
+
+function makeMarkerIcon(color) {
+    return L.divIcon({
+        className: '',
+        html: `<div style="width:16px;height:16px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 0 8px ${color}"></div>`,
+        iconSize: [16, 16], iconAnchor: [8, 8]
+    });
+}
+
+fetch('/api/stations').then(r => r.json()).then(stations => {
+    const sel = document.getElementById('nodeSelect');
+    sel.innerHTML = '';
+    stations.forEach((s, i) => {
+        const opt = document.createElement('option');
+        opt.value = s.node_id; opt.textContent = s.name;
+        sel.appendChild(opt);
+        const m = L.marker([s.lat, s.lng], { icon: makeMarkerIcon('#38bdf8') })
+            .addTo(map).bindPopup(`<b>${s.name}</b><br>Node: ${s.node_id}<br>Ngưỡng: ${s.threshold_cm}cm`);
+        markers[s.node_id] = { marker: m, threshold: s.threshold_cm };
+        if (i === 0) { selectedNode = s.node_id; loadLatest(s.node_id); }
+    });
+    document.getElementById('chartNodeLabel').textContent = stations[0]?.name || '';
+});
+
+function onNodeChange(nodeId) {
+    selectedNode = nodeId;
+    const s = document.querySelector(`#nodeSelect option[value="${nodeId}"]`);
+    document.getElementById('chartNodeLabel').textContent = s?.textContent || '';
+    loadLatest(nodeId);
+    chartData.labels = []; chartData.datasets[0].data = []; chart.update();
+}
+
+async function loadLatest(nodeId) {
+    const res = await fetch(`/api/sensor/latest/${nodeId}`);
+    const data = await res.json();
+    if (data.node_id) renderUI(data);
+
+    // Load history for chart
+    const hist = await fetch(`/api/sensor/history/${nodeId}?limit=15`).then(r => r.json());
+    chartData.labels = hist.map(d => new Date(d.timestamp).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}));
+    chartData.datasets[0].data = hist.map(d => d.water_level_cm);
+    chartData.datasets[1].data = hist.map(d => d.temp);
+    chart.update();
+}
+
+function renderUI(d) {
+    const fmt = v => v !== undefined && v !== null ? v : '—';
+    document.getElementById('statWater').innerHTML = `${fmt(d.water_level_cm)}<span class="stat-unit"> cm</span>`;
+    document.getElementById('statTemp').innerHTML = `${fmt(d.temp)}<span class="stat-unit"> °C</span>`;
+    document.getElementById('statHumi').innerHTML = `${fmt(d.humi)}<span class="stat-unit"> %</span>`;
+    document.getElementById('statLight').innerHTML = `${fmt(d.light)}<span class="stat-unit"> lx</span>`;
+
+    const wStatus = document.getElementById('waterStatus');
+    const info = markers[d.node_id];
+    const threshold = info?.threshold || 30;
+    if (d.water_level_cm >= threshold) {
+        wStatus.className = 'stat-status danger'; wStatus.textContent = `⚠ Nguy hiểm! Vượt ngưỡng ${threshold}cm`;
+        info?.marker.setIcon(makeMarkerIcon('#f43f5e'));
+    } else if (d.water_level_cm >= threshold * 0.7) {
+        wStatus.className = 'stat-status warn'; wStatus.textContent = `⚡ Cảnh báo — đang tăng`;
+        info?.marker.setIcon(makeMarkerIcon('#f59e0b'));
+    } else {
+        wStatus.className = 'stat-status ok'; wStatus.textContent = `✓ An toàn`;
+        info?.marker.setIcon(makeMarkerIcon('#10b981'));
+    }
+
+    // Update chart
+    const now = new Date().toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    chartData.labels.push(now);
+    chartData.datasets[0].data.push(d.water_level_cm);
+    chartData.datasets[1].data.push(d.temp);
+    if (chartData.labels.length > 20) {
+        chartData.labels.shift();
+        chartData.datasets[0].data.shift();
+        chartData.datasets[1].data.shift();
+    }
+    chart.update('none');
+}
+
+// ── CHART ──────────────────────────────────
+const ctx = document.getElementById('mainChart').getContext('2d');
+const chartData = {
+    labels: [],
+    datasets: [
+        { label: 'Mực nước (cm)', borderColor: '#f43f5e', backgroundColor: 'rgba(244,63,94,0.08)', data: [], tension: 0.4, fill: true, pointRadius: 2 },
+        { label: 'Nhiệt độ (°C)', borderColor: '#f59e0b', backgroundColor: 'transparent', data: [], tension: 0.4, fill: false, pointRadius: 2, borderDash: [5,5] }
+    ]
+};
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: chartData,
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 150 },
+        plugins: {
+            legend: { labels: { color: '#94a3b8', font: { size: 11, family: 'JetBrains Mono' } } }
+        },
+        scales: {
+            x: { ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+    }
+});
+
+// ── HELPERS ────────────────────────────────
+function showAlert(msg) {
+    const banner = document.getElementById('alertBanner');
+    document.getElementById('alertText').textContent = msg;
+    banner.style.display = 'block';
+    setTimeout(() => { banner.style.display = 'none'; }, 10000);
+}
+
+function showToast(msg, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.borderColor = type === 'danger' ? 'rgba(244,63,94,0.4)' : 'var(--border2)';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>
